@@ -446,16 +446,22 @@ void Task2_Double() {
 }
 
 void Task2() {
-    //Task2_8bitInt();
-    //Task2_16bitInt();
-    //Task2_32bitInt();
-    //Task2_64bitInt();
-    //Task2_Double();
-    //Task2_Float();
+    std::cout << "8 bit int" << std::endl;
+    Task2_8bitInt();
+    std::cout << "16 bit int" << std::endl;
+    Task2_16bitInt();
+    std::cout << "32 bit int" << std::endl;
+    Task2_32bitInt();
+    std::cout << "64 bit int" << std::endl;
+    Task2_64bitInt();
+    std::cout << "Double" << std::endl;
+    Task2_Double();
+    std::cout << "Float" << std::endl;
+    Task2_Float();
 }
 int main()
 {
     std::cout << std::fixed << std::setprecision(9);
-    //Task2();
-    Task1();
+    Task2();
+    //Task1();
 }
