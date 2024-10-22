@@ -6,11 +6,140 @@
 #include <cstdint>
 #include <chrono>
 #include <iomanip>
+#include <intrin.h>
+typedef enum {
+    INTEL, AMD, OTHER
+} ProcessorType;
+
+typedef enum {
+    SSESUPPORT, SSE2SUPPORT, SSE3SUPPORT, SSSE3SUPPORT, SSE41SUPPORT,
+    SSE42SUPPORT, AVXSUPPORT, AVX2SUPPORT, AVX512SUPPORT
+};
+
+unsigned MaxFun(unsigned* ExtFun) {
+    int regs[4];
+    __cpuidex(regs, 0, 0);
+    int res = regs[0];
+    __cpuidex(regs, 0x80000000, 0);
+    if (ExtFun) {
+        *ExtFun = regs[0];
+    }
+    return res;
+}
+
+bool check_properties(uint32_t fun, uint32_t index, uint32_t bit) {
+    uint32_t r[4];
+    uint32_t mask = 1 << bit;
+    __cpuidex((int*)r, fun, 0);
+    return (r[index] & mask) == mask;
+}
+
+unsigned SIMDSupport() {
+    bool AVX512, AVX, SSE, b;
+    unsigned mask = 0;
+    unsigned max_fun = MaxFun(0);
+    if (max_fun >= 1) {
+        b = check_properties(1, 2, 26) && check_properties(1, 2, 27);
+        if (b) {
+            unsigned long long res = _xgetbv(0);
+            int flags1 = 7 + (7 << 5), flags2 = 7, flags3 = 3;
+            AVX512 = (res & flags1) == flags1;
+            AVX = (res & flags2) == flags2;
+            SSE = (res & flags3) == flags3;
+            if (max_fun >= 7 && AVX512) {
+                b = check_properties(7, 1, 16);
+                if (b) {
+                    mask |= (1 << AVX512SUPPORT);
+                }
+            }
+            if (AVX) {
+                if (max_fun >= 7) {
+                    b = check_properties(7, 1, 5);
+                    if (b) { mask |= 1 << AVX2SUPPORT; }
+                }
+                if (max_fun >= 1) {
+                    b = check_properties(1, 2, 28);
+                    if (b) { mask |= 1 << AVXSUPPORT; }
+                }
+            }
+            if (SSE) {
+                b = check_properties(1, 2, 20);
+                if (b) { mask |= 1 << SSE42SUPPORT; }
+                b = check_properties(1, 2, 19);
+                if (b) { mask |= 1 << SSE41SUPPORT; }
+                b = check_properties(1, 2, 9);
+                if (b) { mask |= 1 << SSSE3SUPPORT; }
+                b = check_properties(1, 2, 0);
+                if (b) { mask |= 1 << SSE3SUPPORT; }
+                b = check_properties(1, 3, 26);
+                if (b) { mask |= 1 << SSE2SUPPORT; }
+                b = check_properties(1, 3, 25);
+                if (b) { mask |= 1 << SSESUPPORT; }
+            }
+        }
+    }
+    return mask;
+}
+
+void Task1_SIMD() {
+    unsigned res = SIMDSupport();
+    if (res & (1 << AVX512SUPPORT)) printf("AVX512 is supported\n");
+    if (res & (1 << AVX2SUPPORT)) printf("AVX2 is supported\n");
+    if (res & (1 << AVXSUPPORT)) printf("AVX is supported\n");
+    if (res & (1 << SSE42SUPPORT)) printf("SSE42 is supported\n");
+    if (res & (1 << SSE41SUPPORT)) printf("SSE41 is supported\n");
+    if (res & (1 << SSSE3SUPPORT)) printf("SSSE3 is supported\n");
+    if (res & (1 << SSE3SUPPORT)) printf("SSE3 is supported\n");
+    if (res & (1 << SSE2SUPPORT)) printf("SSE2 is supported\n");
+    if (res & (1 << SSESUPPORT)) printf("SSE is supported\n");
+}
+
+ProcessorType DefineProcessorType() {
+    ProcessorType Type = OTHER;
+    char IntelName[13] = "GenuineIntel";
+    char AmdName[13] = "AuthenticAMD";
+    char ProcessorName[13];
+    int Regs[4];
+    __cpuid(Regs, 0);
+    memcpy(ProcessorName, &Regs[1], 4);
+    memcpy(ProcessorName + 4, &Regs[3], 4);
+    memcpy(ProcessorName + 8, &Regs[2], 4);
+    if (memcmp(IntelName, ProcessorName, 12) == 0) {
+        Type = INTEL;
+    }
+    else if(memcmp(AmdName, ProcessorName, 12) == 0){
+        Type = AMD;
+    }
+    return Type;
+}
+
+void Task1() {
+    ProcessorType Type;
+    Type = DefineProcessorType();
+    switch (Type)
+    {
+    case INTEL:
+        printf("ProcessorType: INTEL\n");
+        break;
+    case AMD:
+        printf("ProcessorType: AMD\n");
+        break;
+    case OTHER:
+        printf("ProcessorType OTHER\n");
+        break;
+    }
+    Task1_SIMD();
+}
+
+
 
 // For 8-bit values SIZE should be aliquot (кратним) 256/8 = 32 (32, 64, 96...)
 // For 16-bit values SIZE should be aliquot (кратним) 256/16 = 16 (16, 32, 48...)
 // For 32-bit values SIZE should be aliquot (кратним) 256/32 = 8 (8, 16, 24...)
 // For 64-bit values SIZE should be aliquot (кратним) 256/64 = 4 (4, 8, 12...)
+
+
+
 const size_t SIZE = 4096;
 
 template <typename T>
@@ -327,5 +456,6 @@ void Task2() {
 int main()
 {
     std::cout << std::fixed << std::setprecision(9);
-    Task2();
+    //Task2();
+    Task1();
 }
